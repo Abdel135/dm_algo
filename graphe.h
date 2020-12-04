@@ -67,7 +67,7 @@ int ajouter_arete(graphe *g ,int v,int w );
 /*
     Parcours DFS recursive 
 */
-void DFS_recursif(graphe *g,int id,int*visited);
+void DFS_recursif(graphe *g,int id,int*visited,liste *t);
 
 
 /*
