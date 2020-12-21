@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <time.h>
 #include "graphe.h"
 #include "liste.h"
 
@@ -51,7 +52,8 @@ void read_graph(graphe **g)
     printf("1 ou 2 : ");
     int choix=0;
     scanf("%d",&choix);
-    if(choix == 1)return ;
+    if(choix == 1)return;
+    
 
     int n;
     printf("Entrez la taille de matrice d'adjacence : ");
@@ -123,18 +125,7 @@ int ajouter_arete(graphe *g ,int v ,int w) ///v : v     source w
 void DFS_recursif_helper(graphe *g,int id,int* visited,liste *M,liste *N,int *pere)
 {       
       
-            /*int explored=1;
-            node *tmp=g->adj[id].head;
-            while(tmp != NULL)
-            {
-                if(!liste_contient_element(M,tmp->id))
-                {
-                    explored=0;break;
-                }
-                tmp=tmp->next;
-            }
-            
-            if(explored)liste_ajouter_fin(N,id);*/
+           
             visited[id]=1;
             node *n=g->adj[id].head;
         
@@ -189,6 +180,11 @@ void DFS_recursif(graphe *g,int start_node)
     
     int *m=liste_get_debut(M);
     int *n_=liste_get_debut(N);
+
+
+    /*********************/ 
+
+
     puts("Trace :\n");
     printf("sommet  prefix  suffix  pere\n");
 
@@ -202,32 +198,32 @@ void DFS_recursif(graphe *g,int start_node)
         n_=liste_get_suivant(N,n_);
         puts("");
     }
-    /*printf("PERE   : (");
-    for (int i=0 ;i<n;++i)
-    {
-        if(i != start_node)
-            printf("%d ",pere[i]);
-        else printf("- ");
-    }
-    puts(")");*/
+   
 }
 
 
 
 void DFS_iteratif(graphe *g,int start)
 {
+    //printf("DFS : iteratif : \n");
     int n=g->nb_sommets;
     int visited[n];
     int pere[n];
+    pere[start]=-1;
+
+    pere[start]=pere[start];
+
     for(int i=0; i<n ; ++i) visited[i]=0;
 
     liste *M=liste_construire(n);
     liste *N=liste_construire(n);
     liste *stack=liste_construire(n);
-    //node* tmp;
+
     liste_ajouter_fin(stack,start);
     liste_ajouter_fin(M,start);
     visited[start]=1;
+
+    // tant que la pile n'est pas vide
 
     while(!liste_est_vide(stack))
     {
@@ -238,7 +234,12 @@ void DFS_iteratif(graphe *g,int start)
         {
             if(!visited[tmp->id])
             {
-                explored=0;break;
+                explored=0;
+                visited[tmp->id]=1;
+                pere[tmp->id]=*x;
+                liste_ajouter_fin(stack,tmp->id);
+                liste_ajouter_fin(M,tmp->id);
+                liste_ajouter_fin(stack,tmp->id);break;
             }
             tmp=tmp->next;
         }
@@ -248,73 +249,32 @@ void DFS_iteratif(graphe *g,int start)
             liste_ajouter_fin(N,*x);
             free(x);
         }
-        else{
-            
-            while(tmp!=NULL)
-            {
-                int found=0;
-                if(!visited[tmp->id])
-                {
-                    visited[tmp->id]=1;
-                    liste_ajouter_fin(stack,tmp->id);
-                    liste_ajouter_fin(M,tmp->id);
-                    liste_ajouter_fin(stack,tmp->id);
-                    break;
-                }
-                //if(found)continue;
-                tmp=tmp->next;
-            }
-        }
 
     }
-    printf("M ");liste_afficher(M);
-    printf("N ");liste_afficher(N);
+    printf("\tM : ");liste_afficher(M);
+    printf("\tN : ");liste_afficher(N);
+
     
-    /*while( !liste_est_vide(stack) )
+    int *m=liste_get_debut(M);
+    int *n_=liste_get_debut(N);
+
+
+    /*********************/ 
+
+
+    puts("Trace :\n");
+    printf("sommet  prefix  suffix  pere\n");
+
+    for (int i=0 ;i< n ;++i)
     {
-        int *x=malloc(sizeof(int));
-        x=liste_get_fin(stack);
-        explored=1;
-        tmp=g->adj[*x].head;
-            while(tmp != NULL)
-            {
-                if(!liste_contient_element(M,tmp->id))
-                {
-                    explored=0;break;
-                }
-                tmp=tmp->next;
-            }
-            
-            if(explored){liste_ajouter_fin(N,*x);liste_supprimer_fin(stack,x);continue;}
+        printf("%5d  %5d  %5d",i,*m,*n_);
+        if(i == start) printf("     -");
+        else printf("  %5d",pere[i]);
 
-        if(!visited[*x]) {
-            liste_ajouter_fin(M,*x);
-            //printf("%d ",*x);
-            visited[*x]=1;
-            //free(x);
-        }
-        else continue;
-        
-        node* it=g->adj[*x].head;
-        while(it!=NULL)
-			{
-                if(!visited[it->id])
-                {
-                    liste_ajouter_fin(stack,it->id);
-                    pere[it->id]=*x;
-                }
-                it=it->next;
-            }
-            
-
-        free(x);
-
+        m=liste_get_suivant(M,m);
+        n_=liste_get_suivant(N,n_);
+        puts("");
     }
-    liste_afficher(M);
-    liste_afficher(N);
-    puts("");*/
-
-
 
 }
 
@@ -349,7 +309,7 @@ void write_dot(const char *file,graphe *g)
 
 void affichier_graphe(graphe *g){
     int n=g->nb_sommets;
-    printf("\n*** Liste d'adjacence ***\n\n");
+    printf("\n\n*** Liste d'adjacence ***\n\n");
     for(int i=0;i<n;++i)
     {
         printf("%d : [",i);
@@ -368,7 +328,10 @@ void affichier_graphe(graphe *g){
 
 int main()
 {
-    graphe *g=graph_init(8);
+        clock_t start,end;
+        double cpu_time;
+
+        graphe *g=graph_init(8);
     
         ajouter_arete(g,0,2);
         ajouter_arete(g,0,1);
@@ -380,11 +343,29 @@ int main()
         ajouter_arete(g,4,5);
         ajouter_arete(g,5,6);
         ajouter_arete(g,6,7);
+
         read_graph(&g);
 
         affichier_graphe(g);
-    
-        printf("DFS  : \n");DFS_iteratif(g,0);
+        
+        printf("DFS iteratif : \n");
+
+        start=clock();
+        DFS_iteratif(g,0);
+        end=clock();
+        cpu_time=((double)(end - start))/CLOCKS_PER_SEC;
+        printf("temps d'execusion : %fs\n",cpu_time);
+
+        printf("\n\n/********************************/\n\n");
+        printf("DFS recursif : \n");
+
+        start=clock();
+        DFS_recursif(g,0);
+        end=clock();
+        cpu_time=((double)(end - start))/CLOCKS_PER_SEC;
+        printf("temps d'execusion : %fs\n",cpu_time);
+
+        
     
 
         write_dot("g.dot",g);
