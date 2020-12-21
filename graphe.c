@@ -21,7 +21,7 @@ void suprimer_node(node *n)
 }
 
 
-/*------------------------*/
+
 
 
 graphe *graph_init(int N)
@@ -39,6 +39,57 @@ graphe *graph_init(int N)
 
     return g;    
 }
+/*------------------------*/
+
+
+void read_graph(graphe **g)
+{
+
+    printf("Voulez-vous :\n");
+    printf("1 :Continuez avec le graphe fournit dans le sujet de devoir\n");
+    printf("2 :Testez un nouveau graphe avec une nouvelle matrice d'adjacence\n");
+    printf("1 ou 2 : ");
+    int choix=0;
+    scanf("%d",&choix);
+    if(choix == 1)return ;
+
+    int n;
+    printf("Entrez la taille de matrice d'adjacence : ");
+    scanf("%d",&n);
+    
+    while(n <= 0)
+    {
+        printf("Entrez une taille valide : ");
+        scanf("%d",&n);
+    }
+    *g=graph_init(n);
+
+    int matrice[n][n];
+    printf("copier votre matrice ici : \n");
+    for (int i=0; i<n;++i)
+        for (int j=0;j<n;++j)
+            scanf("%d",&matrice[i][j]);
+
+    for (int i=0; i<n-1; ++i)
+    {
+        for (int j=i+1; j<n;++j)
+        {
+            if(matrice[i][j] >= 1){
+                ajouter_arete(*g,i,j);
+            }
+        }
+    }
+    
+}
+
+
+
+
+
+
+/*----------------------*/
+
+
 
 void suprimer_graphe(graphe *g)
 {
@@ -53,8 +104,6 @@ int ajouter_arete(graphe *g ,int v ,int w) ///v : v     source w
     node *W=creer_node(w);
     if (V == NULL || W == NULL || v >= g->nb_sommets || w >= g->nb_sommets ){puts("sommet invalide");return -1;}
 
-    // the problem is the graph is not connected so that not all nodes will be visited
-    // see this https://www.youtube.com/watch?v=7fujbpJ0LB4&ab_channel=WilliamFiset
 
      // add W --> V
     V->next = g->adj[w].head; 
@@ -71,31 +120,205 @@ int ajouter_arete(graphe *g ,int v ,int w) ///v : v     source w
 
 
 
-void DFS_recursif(graphe *g,int id,int* visited,liste *t)
-{
-        if(!visited[id])
-        {
-            visited[id]=1;
-            printf("%d ",id);
+void DFS_recursif_helper(graphe *g,int id,int* visited,liste *M,liste *N,int *pere)
+{       
+      
+            /*int explored=1;
+            node *tmp=g->adj[id].head;
+            while(tmp != NULL)
+            {
+                if(!liste_contient_element(M,tmp->id))
+                {
+                    explored=0;break;
+                }
+                tmp=tmp->next;
+            }
             
+            if(explored)liste_ajouter_fin(N,id);*/
+            visited[id]=1;
             node *n=g->adj[id].head;
+        
+            liste_ajouter_fin(M,id);
             
             // appel DFS sur les voisins de ' id '
-    
             while (n!=NULL)
             {
-                DFS_recursif(g,n->id ,visited,t);
-                n=n->next;
+                if(!visited[n->id])
+                {
+                    pere[n->id]=id;
+                    DFS_recursif_helper(g,n->id ,visited,M,N,pere);
+                    
+                }  
+            n=n->next;
+            }
+
+            //Back-track après qu'il ne reste aucun sommet à visiter
+            // ajouter le sommet à la liste "SUFFIX" si tous ces voisins ont étés visités 
+            int explored=1;
+            node *tmp=g->adj[id].head;
+            while(tmp != NULL)
+            {
+                if(!liste_contient_element(M,tmp->id))
+                {
+                    explored=0;break;
+                }
+                tmp=tmp->next;
+            }
+            // si tous ces voisin on étés visités 
+            if(explored)liste_ajouter_fin(N,id);
+            
+}
+
+
+void DFS_recursif(graphe *g,int start_node)
+{
+    int n=g->nb_sommets;
+    liste *M=liste_construire(n);
+    liste *N=liste_construire(n);
+    int pere[n];
+    pere[start_node]=-1;
+    
+    int visited[n];
+    for (int i=0;i<n;++i) visited[i]=0;
+    DFS_recursif_helper(g,start_node,visited,M,N,pere);
+    
+    putchar('\n');
+    printf("\tM : ");liste_afficher(M);
+    printf("\tN : ");liste_afficher(N);
+
+    
+    int *m=liste_get_debut(M);
+    int *n_=liste_get_debut(N);
+    puts("Trace :\n");
+    printf("sommet  prefix  suffix  pere\n");
+
+    for (int i=0 ;i< n ;++i)
+    {
+        printf("%5d  %5d  %5d",i,*m,*n_);
+        if(i == start_node) printf("     -");
+        else printf("  %5d",pere[i]);
+
+        m=liste_get_suivant(M,m);
+        n_=liste_get_suivant(N,n_);
+        puts("");
+    }
+    /*printf("PERE   : (");
+    for (int i=0 ;i<n;++i)
+    {
+        if(i != start_node)
+            printf("%d ",pere[i]);
+        else printf("- ");
+    }
+    puts(")");*/
+}
+
+
+
+void DFS_iteratif(graphe *g,int start)
+{
+    int n=g->nb_sommets;
+    int visited[n];
+    int pere[n];
+    for(int i=0; i<n ; ++i) visited[i]=0;
+
+    liste *M=liste_construire(n);
+    liste *N=liste_construire(n);
+    liste *stack=liste_construire(n);
+    //node* tmp;
+    liste_ajouter_fin(stack,start);
+    liste_ajouter_fin(M,start);
+    visited[start]=1;
+
+    while(!liste_est_vide(stack))
+    {
+        int *x=liste_get_fin(stack);
+        int explored=1;
+        node *tmp=g->adj[*x].head;
+        while(tmp!=NULL)
+        {
+            if(!visited[tmp->id])
+            {
+                explored=0;break;
+            }
+            tmp=tmp->next;
+        }
+        if(explored){
+            x=malloc(sizeof(int));
+            liste_supprimer_fin(stack,x);
+            liste_ajouter_fin(N,*x);
+            free(x);
+        }
+        else{
+            
+            while(tmp!=NULL)
+            {
+                int found=0;
+                if(!visited[tmp->id])
+                {
+                    visited[tmp->id]=1;
+                    liste_ajouter_fin(stack,tmp->id);
+                    liste_ajouter_fin(M,tmp->id);
+                    liste_ajouter_fin(stack,tmp->id);
+                    break;
+                }
+                //if(found)continue;
+                tmp=tmp->next;
             }
         }
-        liste_ajouter_fin(t,id);
 
-        
+    }
+    printf("M ");liste_afficher(M);
+    printf("N ");liste_afficher(N);
+    
+    /*while( !liste_est_vide(stack) )
+    {
+        int *x=malloc(sizeof(int));
+        x=liste_get_fin(stack);
+        explored=1;
+        tmp=g->adj[*x].head;
+            while(tmp != NULL)
+            {
+                if(!liste_contient_element(M,tmp->id))
+                {
+                    explored=0;break;
+                }
+                tmp=tmp->next;
+            }
+            
+            if(explored){liste_ajouter_fin(N,*x);liste_supprimer_fin(stack,x);continue;}
 
+        if(!visited[*x]) {
+            liste_ajouter_fin(M,*x);
+            //printf("%d ",*x);
+            visited[*x]=1;
+            //free(x);
+        }
+        else continue;
         
-    
-    
+        node* it=g->adj[*x].head;
+        while(it!=NULL)
+			{
+                if(!visited[it->id])
+                {
+                    liste_ajouter_fin(stack,it->id);
+                    pere[it->id]=*x;
+                }
+                it=it->next;
+            }
+            
+
+        free(x);
+
+    }
+    liste_afficher(M);
+    liste_afficher(N);
+    puts("");*/
+
+
+
 }
+
+
 
 
 
@@ -104,7 +327,7 @@ void DFS_recursif(graphe *g,int id,int* visited,liste *t)
 void write_dot(const char *file,graphe *g)
 {
     FILE *f = fopen(file,"w");
-    if (f == NULL){puts("file error");exit(0);}
+    if (f == NULL)  {puts("file error");exit(0);}
     fputs("graph{",f);
 
     for (int i=0; i < g->nb_sommets ;++i)
@@ -126,7 +349,7 @@ void write_dot(const char *file,graphe *g)
 
 void affichier_graphe(graphe *g){
     int n=g->nb_sommets;
-    printf("\n*** graphe ***\n\n");
+    printf("\n*** Liste d'adjacence ***\n\n");
     for(int i=0;i<n;++i)
     {
         printf("%d : [",i);
@@ -146,25 +369,24 @@ void affichier_graphe(graphe *g){
 int main()
 {
     graphe *g=graph_init(8);
-    int visited[g->nb_sommets];
-    liste *l=liste_construire(8);
-    for (int  i= 0 ;i<g->nb_sommets ;++i) visited[i]=0;
+    
         ajouter_arete(g,0,2);
         ajouter_arete(g,0,1);
         ajouter_arete(g,1,4);
+        ajouter_arete(g,3,4);
         ajouter_arete(g,1,3);
         ajouter_arete(g,2,3);
-        ajouter_arete(g,4,5);
         ajouter_arete(g,4,6);
+        ajouter_arete(g,4,5);
         ajouter_arete(g,5,6);
         ajouter_arete(g,6,7);
+        read_graph(&g);
 
-    affichier_graphe(g);
+        affichier_graphe(g);
     
-    printf("DFS : ");DFS_recursif(g,0,visited,l);
-    putchar('\n');
-    liste_afficher(l);
+        printf("DFS  : \n");DFS_iteratif(g,0);
+    
 
-    write_dot("g.dot",g);
+        write_dot("g.dot",g);
 }
 // dfs visited // 
